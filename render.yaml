@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: agrosense-ai
+    runtime: docker
+    plan: free
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    envVars:
+      - key: AI_SERVICE_TOKEN
+        generateValue: true
+      - key: LOG_LEVEL
+        value: INFO
