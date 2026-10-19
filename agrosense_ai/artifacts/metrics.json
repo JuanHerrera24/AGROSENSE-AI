@@ -1,0 +1,77 @@
+{
+  "trained_at": "2026-10-19T05:40:03+00:00",
+  "scikit_learn": "1.5.2",
+  "quick": false,
+  "models": {
+    "irrigation": {
+      "version": "agrosense-irrigation-gbm-2.0",
+      "metrics": {
+        "train_rows": 32000,
+        "test_rows": 8000,
+        "accuracy": 0.9456,
+        "f1": 0.9575,
+        "roc_auc": 0.9884,
+        "brier": 0.0395,
+        "baseline_rule_accuracy": 0.8197,
+        "baseline_rule_f1": 0.836,
+        "minutes_mae": 6.1757,
+        "minutes_r2": 0.9175,
+        "seconds": 3.5
+      }
+    },
+    "forecast": {
+      "version": "agrosense-forecast-qgbm-1.0",
+      "metrics": {
+        "train_rows": 19492,
+        "calibration_rows": 4874,
+        "test_rows": 6092,
+        "h6_mae": 0.941,
+        "h6_baseline_persistence_mae": 1.8018,
+        "h6_interval_coverage": 0.7986,
+        "h6_interval_width": 2.972,
+        "h12_mae": 1.1874,
+        "h12_baseline_persistence_mae": 2.827,
+        "h12_interval_coverage": 0.8139,
+        "h12_interval_width": 4.0186,
+        "h24_mae": 1.6648,
+        "h24_baseline_persistence_mae": 4.6978,
+        "h24_interval_coverage": 0.8142,
+        "h24_interval_width": 5.7023,
+        "seconds": 33.4
+      }
+    },
+    "anomaly": {
+      "version": "agrosense-anomaly-iforest-1.0",
+      "metrics": {
+        "test_rows": 20160,
+        "precision": 0.7677,
+        "recall": 0.5009,
+        "f1": 0.6063,
+        "false_alarm_rate": 0.0134,
+        "recall_spike": 1.0,
+        "recall_frozen": 0.9866,
+        "recall_drift": 0.2135,
+        "recall_out_of_range": 1.0,
+        "event_recall_spike": 1.0,
+        "event_recall_frozen": 1.0,
+        "event_recall_drift": 0.4792,
+        "event_recall_out_of_range": 1.0,
+        "train_rows": 80640,
+        "seconds": 26.6
+      }
+    },
+    "disease": {
+      "version": "agrosense-disease-gbm-1.0",
+      "metrics": {
+        "train_rows": 24000,
+        "test_rows": 6000,
+        "accuracy": 0.946,
+        "f1": 0.7928,
+        "roc_auc": 0.9547,
+        "brier": 0.043,
+        "outbreak_share": 0.1429,
+        "seconds": 1.4
+      }
+    }
+  }
+}
