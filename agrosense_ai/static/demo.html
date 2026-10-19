@@ -1,0 +1,286 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AgroSense IA</title>
+<style>
+  :root {
+    --bg: #f5f7f3; --surface: #ffffff; --sunken: #eef2ec; --border: #e2e8e2; --text: #17231d;
+    --muted: #5f6b63; --accent: #16834a; --accent-soft: #e4f3e9; --panel: #10291f; --warn: #b4540a;
+    --warn-soft: #fdf0e3; --bad: #b42318; --bad-soft: #fdecea; --band: rgba(22, 131, 74, .14);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0c1511; --surface: #14201a; --sunken: #0f1a15; --border: #25352c; --text: #e8efe9;
+      --muted: #9db0a4; --accent: #3fb56a; --accent-soft: #183326; --panel: #07100c; --warn: #f0a050;
+      --warn-soft: #33240f; --bad: #f97066; --bad-soft: #3a1714; --band: rgba(63, 181, 106, .18);
+    }
+  }
+  * { box-sizing: border-box; }
+  [hidden] { display: none !important; }
+  body { margin: 0; background: var(--bg); color: var(--text);
+         font: 15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; }
+  header { background: var(--panel); color: #e8efe9; padding: 28px 16px; }
+  header div, main { max-width: 960px; margin: 0 auto; }
+  header h1 { margin: 0 0 4px; font-size: 1.6rem; }
+  header p { margin: 0; color: #9db0a4; }
+  header a { color: #c7ed92; }
+  main { padding: 20px 16px 48px; }
+  .token { display: flex; gap: 8px; align-items: center; margin-bottom: 16px; flex-wrap: wrap; }
+  .token input { flex: 1; min-width: 200px; }
+  nav { display: flex; gap: 6px; flex-wrap: wrap; margin-bottom: 16px; }
+  nav button { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+  nav button[aria-selected="true"] { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.3fr); gap: 16px; }
+  @media (max-width: 760px) { .grid { grid-template-columns: 1fr; } }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 14px; padding: 18px; }
+  .card h2 { margin: 0 0 4px; font-size: 1.1rem; }
+  .card > p { margin: 0 0 14px; color: var(--muted); font-size: .875rem; }
+  label { display: block; font-size: .8rem; color: var(--muted); margin: 10px 0 4px; }
+  .row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+  input, select, textarea { width: 100%; padding: 9px 10px; border: 1px solid var(--border); border-radius: 8px;
+         background: var(--sunken); color: var(--text); font: inherit; }
+  textarea { min-height: 90px; font-family: ui-monospace, monospace; font-size: .8rem; }
+  button { padding: 9px 16px; border-radius: 8px; border: 0; background: var(--accent); color: #fff;
+           font: inherit; font-weight: 600; cursor: pointer; }
+  button.ghost { background: transparent; color: var(--accent); border: 1px solid var(--border); }
+  .actions { display: flex; gap: 8px; margin-top: 14px; flex-wrap: wrap; }
+  .result:empty::before { content: "Envía una consulta para ver la respuesta del modelo."; color: var(--muted); }
+  .verdict { font-size: 1.05rem; font-weight: 600; margin: 0 0 12px; }
+  .pill { display: inline-block; padding: 2px 10px; border-radius: 999px; font-size: .8rem; font-weight: 600;
+          background: var(--accent-soft); color: var(--accent); margin: 0 6px 6px 0; }
+  .pill.warn { background: var(--warn-soft); color: var(--warn); }
+  .pill.bad { background: var(--bad-soft); color: var(--bad); }
+  .stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(120px, 1fr)); gap: 10px; margin: 12px 0; }
+  .stat { background: var(--sunken); border-radius: 10px; padding: 10px 12px; }
+  .stat b { display: block; font-size: 1.35rem; }
+  .stat span { color: var(--muted); font-size: .78rem; }
+  .bars div { display: grid; grid-template-columns: 150px 1fr 110px; gap: 8px; align-items: center;
+              font-size: .82rem; margin: 4px 0; }
+  .bars i { display: block; height: 8px; border-radius: 4px; background: var(--accent); }
+  .bars i.neg { background: var(--warn); }
+  svg { width: 100%; height: auto; display: block; }
+  svg text { fill: var(--muted); font-size: 11px; }
+  details { margin-top: 12px; font-size: .8rem; }
+  pre { background: var(--sunken); padding: 10px; border-radius: 8px; overflow: auto; }
+  .error { color: var(--bad); font-weight: 600; }
+  footer { color: var(--muted); font-size: .8rem; margin-top: 24px; }
+</style>
+</head>
+<body>
+<header><div>
+  <h1>AgroSense IA</h1>
+  <p>Cuatro modelos de machine learning para el agro. Documentación de la API en <a href="/docs">/docs</a>.</p>
+</div></header>
+<main>
+  <div class="token">
+    <label for="token" style="margin:0">Token del servicio</label>
+    <input id="token" type="password" placeholder="Solo si el servicio tiene AI_SERVICE_TOKEN" autocomplete="off">
+  </div>
+  <nav role="tablist">
+    <button role="tab" data-tab="irrigation" aria-selected="true">Riego</button>
+    <button role="tab" data-tab="forecast" aria-selected="false">Pronóstico de humedad</button>
+    <button role="tab" data-tab="anomaly" aria-selected="false">Fallas de sensores</button>
+    <button role="tab" data-tab="disease" aria-selected="false">Enfermedades</button>
+  </nav>
+
+  <section data-panel="irrigation" class="grid">
+    <form class="card" data-endpoint="/predict/irrigation">
+      <h2>¿Riego ahora?</h2>
+      <p>Clasificador y regresor de gradient boosting. Es la ruta que llama el backend.</p>
+      <label>Cultivo</label><select name="crop_type" class="crops"></select>
+      <div class="row">
+        <div><label>Humedad del suelo (%)</label><input name="soil_moisture" type="number" step="0.1" value="38" required></div>
+        <div><label>Temperatura (°C)</label><input name="air_temperature" type="number" step="0.1" value="29"></div>
+        <div><label>pH</label><input name="ph" type="number" step="0.1" value="6.2"></div>
+        <div><label>Humedad del aire (%)</label><input name="relative_humidity" type="number" step="1" value="55"></div>
+        <div><label>Lluvia prevista (mm)</label><input name="rain_forecast_mm" type="number" step="0.1" value="0"></div>
+      </div>
+      <div class="actions"><button>Predecir</button></div>
+    </form>
+    <div class="card result" id="irrigation-result"></div>
+  </section>
+
+  <section data-panel="forecast" class="grid" hidden>
+    <form class="card" data-endpoint="/predict/moisture-forecast">
+      <h2>Humedad en las próximas 24 h</h2>
+      <p>Regresión cuantílica calibrada con conformal prediction: la banda cubre el 80 % de los casos.</p>
+      <label>Cultivo</label><select name="crop_type" class="crops"></select>
+      <div class="row">
+        <div><label>Humedad actual (%)</label><input name="soil_moisture" type="number" step="0.1" value="62" required></div>
+        <div><label>Temperatura (°C)</label><input name="air_temperature" type="number" step="0.1" value="27"></div>
+      </div>
+      <label>Últimas lecturas horarias (opcional)</label>
+      <textarea name="history">66, 65.6, 65.1, 64.7, 64.2, 63.8, 63.4, 62.9</textarea>
+      <div class="actions"><button>Pronosticar</button></div>
+    </form>
+    <div class="card result" id="forecast-result"></div>
+  </section>
+
+  <section data-panel="anomaly" class="grid" hidden>
+    <form class="card" data-endpoint="/detect/anomalies">
+      <h2>Fallas de sensores</h2>
+      <p>Isolation Forest más reglas físicas: picos, valores congelados, deriva y valores imposibles.</p>
+      <label>Tipo de sensor</label><select name="sensor_type" class="sensors"></select>
+      <label>Lecturas (en orden, una por hora)</label>
+      <textarea name="readings"></textarea>
+      <div class="actions"><button>Analizar</button><button type="button" class="ghost" id="sample">Generar serie con fallas</button></div>
+    </form>
+    <div class="card result" id="anomaly-result"></div>
+  </section>
+
+  <section data-panel="disease" class="grid" hidden>
+    <form class="card" data-endpoint="/predict/disease-risk">
+      <h2>Riesgo de enfermedad</h2>
+      <p>Gradient boosting con el cultivo como variable categórica. Cada cultivo tiene su hongo principal.</p>
+      <label>Cultivo</label><select name="crop_type" class="crops" data-default="coffee"></select>
+      <div class="row">
+        <div><label>Temperatura media (°C)</label><input name="air_temperature" type="number" step="0.1" value="23" required></div>
+        <div><label>Humedad relativa media (%)</label><input name="relative_humidity" type="number" step="1" value="93" required></div>
+        <div><label>Horas con HR ≥ 90 %</label><input name="hours_high_humidity" type="number" step="1" value="14"></div>
+        <div><label>Horas de hoja mojada</label><input name="leaf_wetness_hours" type="number" step="1" value="10"></div>
+        <div><label>Lluvia (mm)</label><input name="rain_mm" type="number" step="0.1" value="6"></div>
+      </div>
+      <div class="actions"><button>Evaluar riesgo</button></div>
+    </form>
+    <div class="card result" id="disease-result"></div>
+  </section>
+  <footer id="footer"></footer>
+</main>
+<script>
+const $ = (s, el = document) => el.querySelector(s);
+const esc = s => String(s).replace(/[&<>"]/g, c => ({"&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;"}[c]));
+const FACTOR_LABELS = {
+  low_moisture: "humedad baja", high_moisture: "humedad alta", moisture_ok: "humedad adecuada",
+  preventive_irrigation: "riego preventivo", high_temperature: "temperatura alta", low_temperature: "temperatura baja",
+  frost_risk: "riesgo de helada", acidic_ph: "pH ácido", alkaline_ph: "pH alcalino", rain_expected: "lluvia prevista",
+};
+const WARNING_FACTORS = ["high_temperature", "frost_risk", "acidic_ph", "alkaline_ph", "high_moisture"];
+const KIND_LABELS = {spike: "pico", frozen: "valor congelado", drift: "deriva", out_of_range: "fuera de rango", outlier: "atípico"};
+const SEVERE_KINDS = ["spike", "out_of_range"];
+const RISK_LABELS = {low: "bajo", medium: "medio", high: "alto"};
+const SENSORS = ["SOIL_MOISTURE", "AIR_TEMPERATURE", "SOIL_TEMPERATURE", "PH", "CONDUCTIVITY", "LIGHT",
+                 "RAIN_GAUGE", "RELATIVE_HUMIDITY"];
+
+document.querySelectorAll("nav button").forEach(b => b.addEventListener("click", () => {
+  document.querySelectorAll("nav button").forEach(x => x.setAttribute("aria-selected", x === b));
+  document.querySelectorAll("[data-panel]").forEach(p => p.hidden = p.dataset.panel !== b.dataset.tab);
+}));
+
+fetch("/crops").then(r => r.json()).then(crops => document.querySelectorAll(".crops").forEach(sel => {
+  sel.innerHTML = crops.map(c => `<option value="${c.code}">${esc(c.name)}</option>`).join("");
+  sel.value = sel.dataset.default || "coffee";
+}));
+document.querySelectorAll(".sensors").forEach(sel =>
+  sel.innerHTML = SENSORS.map(s => `<option>${s}</option>`).join(""));
+fetch("/").then(r => r.json()).then(i => $("#footer").textContent = `agrosense-ai ${i.version}`);
+
+function sampleSeries() {
+  const v = [];
+  for (let h = 0; h < 72; h++) v.push(+(60 - h * 0.18 + Math.sin(h / 3) * 0.4 + (Math.random() - .5) * .8).toFixed(1));
+  v[20] = 97.5;                                   // spike
+  for (let h = 45; h < 58; h++) v[h] = v[44];     // frozen sensor
+  v[66] = 130;                                    // out of range
+  return v.join(", ");
+}
+$("#sample").addEventListener("click", () => { $("[name=sensor_type]").value = "SOIL_MOISTURE"; $("[name=readings]").value = sampleSeries(); });
+$("[name=readings]").value = sampleSeries();
+
+const numbers = s => s.split(/[\s,;]+/).filter(Boolean).map(Number);
+
+document.querySelectorAll("form[data-endpoint]").forEach(form => form.addEventListener("submit", async e => {
+  e.preventDefault();
+  const body = {};
+  for (const [k, v] of new FormData(form)) {
+    if (v === "") continue;
+    if (k === "history" || k === "readings") body[k] = numbers(v);
+    else body[k] = isNaN(v) ? v : Number(v);
+  }
+  const out = form.nextElementSibling;
+  out.innerHTML = "<p>Consultando…</p>";
+  const headers = {"Content-Type": "application/json"};
+  const token = $("#token").value.trim();
+  if (token) headers.Authorization = `Bearer ${token}`;
+  try {
+    const res = await fetch(form.dataset.endpoint, {method: "POST", headers, body: JSON.stringify(body)});
+    const data = await res.json();
+    if (!res.ok) { out.innerHTML = `<p class="error">${res.status}: ${esc(data.message)}</p>`; return; }
+    out.innerHTML = RENDER[form.dataset.endpoint](data) +
+      `<details><summary>Respuesta JSON</summary><pre>${esc(JSON.stringify(data, null, 2))}</pre></details>`;
+  } catch (err) {
+    out.innerHTML = `<p class="error">No se pudo contactar el servicio: ${esc(err.message)}</p>`;
+  }
+}));
+
+function explanation(items, unit) {
+  if (!items || !items.length) return "";
+  const max = Math.max(...items.map(i => Math.abs(i.effect)));
+  return `<h3 style="font-size:.9rem;margin:16px 0 6px">Qué pesó en la decisión</h3><div class="bars">` +
+    items.map(i => `<div><span>${esc(i.label)}</span><i class="${i.effect < 0 ? "neg" : ""}" style="width:${Math.max(4, Math.abs(i.effect) / max * 100)}%"></i><span>${i.effect > 0 ? "+" : ""}${(i.effect * 100).toFixed(1)} ${unit}</span></div>`).join("") +
+    `</div>`;
+}
+
+const RENDER = {
+  "/predict/irrigation": d => `
+    <p class="verdict">${esc(d.recommendation)}</p>
+    <div class="stats">
+      <div class="stat"><b>${d.irrigate ? "Sí" : "No"}</b><span>Regar</span></div>
+      <div class="stat"><b>${d.duration_minutes} min</b><span>Duración</span></div>
+      <div class="stat"><b>${(d.confidence * 100).toFixed(0)} %</b><span>Confianza</span></div>
+    </div>
+    ${d.factors.map(f => `<span class="pill ${WARNING_FACTORS.includes(f) ? "warn" : ""}">${esc(FACTOR_LABELS[f] || f)}</span>`).join("")}
+    ${explanation(d.explanation, "pts de prob.")}`,
+
+  "/predict/moisture-forecast": d => {
+    const pts = [{hours_ahead: 0, expected: d.current, low: d.current, high: d.current}, ...d.forecast];
+    const W = 520, H = 220, P = 34, x = h => P + h / 24 * (W - 2 * P);
+    const vals = pts.flatMap(p => [p.low, p.high]).concat([d.limits.humidity_min, d.limits.humidity_max]);
+    const lo = Math.max(0, Math.min(...vals) - 5), hi = Math.min(100, Math.max(...vals) + 5);
+    const y = v => H - P + 10 - (v - lo) / (hi - lo) * (H - 2 * P);
+    const band = pts.map(p => `${x(p.hours_ahead)},${y(p.high)}`).join(" ") + " " +
+                 pts.slice().reverse().map(p => `${x(p.hours_ahead)},${y(p.low)}`).join(" ");
+    const line = pts.map(p => `${x(p.hours_ahead)},${y(p.expected)}`).join(" ");
+    const limit = (v, t) => `<line x1="${P}" x2="${W - P}" y1="${y(v)}" y2="${y(v)}" stroke="var(--warn)" stroke-dasharray="4 4"/><text x="${W - P + 4}" y="${y(v) + 4}">${t}</text>`;
+    return `<p class="verdict">${esc(d.recommendation)}</p>
+      <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Pronóstico de humedad del suelo">
+        <polygon points="${band}" fill="var(--band)"/>
+        ${limit(d.limits.humidity_min, "mín")}${limit(d.limits.humidity_max, "máx")}
+        <polyline points="${line}" fill="none" stroke="var(--accent)" stroke-width="2.5"/>
+        ${pts.map(p => `<circle cx="${x(p.hours_ahead)}" cy="${y(p.expected)}" r="4" fill="var(--accent)"/><text x="${x(p.hours_ahead)}" y="${H - 6}" text-anchor="middle">${p.hours_ahead ? "+" + p.hours_ahead + " h" : "ahora"}</text><text x="${x(p.hours_ahead)}" y="${y(p.expected) - 9}" text-anchor="middle">${p.expected}%</text>`).join("")}
+      </svg>
+      <p style="color:var(--muted);font-size:.8rem">${esc(d.assumes)}</p>`;
+  },
+
+  "/detect/anomalies": d => {
+    const vals = numbers($("[name=readings]").value);
+    const W = 520, H = 160, P = 12;
+    const lo = Math.min(...vals), hi = Math.max(...vals) || 1;
+    const x = i => P + i / Math.max(vals.length - 1, 1) * (W - 2 * P);
+    const y = v => H - P - (v - lo) / ((hi - lo) || 1) * (H - 2 * P);
+    const color = kind => SEVERE_KINDS.includes(kind) ? "var(--bad)" : "var(--warn)";
+    const counts = {};
+    d.anomalies.forEach(a => counts[a.kind] = (counts[a.kind] || 0) + 1);
+    return `<p class="verdict">${esc(d.summary)}</p>
+      <div class="stats"><div class="stat"><b>${(d.health_score * 100).toFixed(0)} %</b><span>Lecturas sanas</span></div>
+      <div class="stat"><b>${d.anomalies.length}</b><span>Sospechosas</span></div></div>
+      ${Object.entries(counts).map(([k, n]) => `<span class="pill ${SEVERE_KINDS.includes(k) ? "bad" : "warn"}">${esc(KIND_LABELS[k] || k)}: ${n}</span>`).join("")}
+      <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Lecturas del sensor">
+        <polyline points="${vals.map((v, i) => `${x(i)},${y(v)}`).join(" ")}" fill="none" stroke="var(--accent)" stroke-width="1.8"/>
+        ${d.anomalies.map(a => `<circle cx="${x(a.index)}" cy="${y(a.value)}" r="4.5" fill="${color(a.kind)}"><title>${KIND_LABELS[a.kind] || a.kind} · ${a.value}</title></circle>`).join("")}
+      </svg>`;
+  },
+
+  "/predict/disease-risk": d => `
+    <p class="verdict">${esc(d.recommendation)}</p>
+    <div class="stats">
+      <div class="stat"><b>${(d.probability * 100).toFixed(0)} %</b><span>Probabilidad de brote</span></div>
+      <div class="stat"><b style="color:${d.risk_level === "high" ? "var(--bad)" : d.risk_level === "medium" ? "var(--warn)" : "var(--accent)"}">${esc(RISK_LABELS[d.risk_level])}</b><span>Riesgo</span></div>
+    </div>
+    <p style="font-size:.85rem;color:var(--muted)">${esc(d.disease_name)} prospera con ${esc(d.favourable_conditions.temperature)},
+      humedad relativa de ${esc(d.favourable_conditions.relative_humidity)} y ${esc(d.favourable_conditions.leaf_wetness_hours)} de hoja mojada.</p>
+    ${explanation(d.explanation, "pts de prob.")}`,
+};
+</script>
+</body>
+</html>
